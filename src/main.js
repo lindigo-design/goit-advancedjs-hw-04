@@ -19,6 +19,8 @@ let currentPage = 1;
 let totalHits = 0;
 const PER_PAGE = 15;
 
+hideLoadMoreButton();
+
 formEl.addEventListener('submit', handleSubmit);
 loadMoreBtn.addEventListener('click', handleLoadMore);
 
@@ -37,6 +39,7 @@ async function handleSubmit(event) {
 
   currentQuery = query;
   currentPage = 1;
+  totalHits = 0;
 
   clearGallery();
   hideLoadMoreButton();
@@ -44,7 +47,6 @@ async function handleSubmit(event) {
 
   try {
     const data = await getImagesByQuery(currentQuery, currentPage);
-
     totalHits = data.totalHits;
 
     if (!data.hits || data.hits.length === 0) {
@@ -58,10 +60,16 @@ async function handleSubmit(event) {
 
     createGallery(data.hits);
 
-    if (totalHits > PER_PAGE) {
+    const maxPage = Math.ceil(totalHits / PER_PAGE);
+
+    if (currentPage < maxPage) {
       showLoadMoreButton();
     } else {
       hideLoadMoreButton();
+      iziToast.info({
+        message: "We're sorry, but you've reached the end of search results.",
+        position: 'topRight',
+      });
     }
   } catch {
     iziToast.error({
@@ -81,20 +89,18 @@ async function handleLoadMore() {
 
   try {
     const data = await getImagesByQuery(currentQuery, currentPage);
-
     createGallery(data.hits);
 
     const maxPage = Math.ceil(totalHits / PER_PAGE);
 
-    if (currentPage >= maxPage) {
+    if (currentPage < maxPage) {
+      showLoadMoreButton();
+    } else {
       hideLoadMoreButton();
-
       iziToast.info({
         message: "We're sorry, but you've reached the end of search results.",
         position: 'topRight',
       });
-    } else {
-      showLoadMoreButton();
     }
 
     scrollPage();
@@ -109,11 +115,11 @@ async function handleLoadMore() {
 }
 
 function scrollPage() {
-  const galleryItem = document.querySelector('.gallery-item');
+  const card = document.querySelector('.gallery-item');
 
-  if (!galleryItem) return;
+  if (!card) return;
 
-  const cardHeight = galleryItem.getBoundingClientRect().height;
+  const cardHeight = card.getBoundingClientRect().height;
 
   window.scrollBy({
     top: cardHeight * 2,
